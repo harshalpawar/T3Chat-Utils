@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>T3Chat Sidebar</title>
+    <link rel="stylesheet" href="sidebar.css" />
+  </head>
+  <body>
+    <div class="sidebar-container">
+      <div class="chat-container">
+        <div id="chat-messages" class="messages-container"></div>
+        <div class="input-container">
+          <textarea
+            id="chat-input"
+            placeholder="Type your message..."
+          ></textarea>
+          <button id="send-button">Send</button>
+        </div>
+      </div>
+      <div class="navigation-controls">
+        <button id="prev-exchange">↑</button>
+        <div id="chat-scrollbar" class="custom-scrollbar"></div>
+        <button id="next-exchange">↓</button>
+      </div>
+    </div>
+    <script type="module" src="sidebar.js"></script>
+  </body>
+</html>
