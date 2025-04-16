@@ -1,0 +1,10 @@
+[ ] Understand the code
+[ ] Get the sidebar working
+	[ ] Keyboard shortcut
+	[ ] Login 
+[ ] Load extension in Brave
+[ ] Page as context
+[ ] Transcript as context
+[ ] Scrollbar
+[ ] Text expansion
+[ ] npm audit
