@@ -3,8 +3,9 @@
   "name": "T3Chat Sidebar",
   "version": "1.0.0",
   "description": "Opens T3chat in a browser sidebar",
-  "permissions": ["sidePanel"],
+  "permissions": ["sidePanel", "identity", "cookies"],
+  "host_permissions": ["https://t3.chat/*", "https://accounts.google.com/*"],
   "side_panel": {
-    "default_path": "sidebar.html"
+    "default_path": "sidebar/sidebar.html"
   }
 }

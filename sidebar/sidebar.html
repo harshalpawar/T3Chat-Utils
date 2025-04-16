@@ -7,23 +7,11 @@
     <link rel="stylesheet" href="sidebar.css" />
   </head>
   <body>
-    <div class="sidebar-container">
-      <div class="chat-container">
-        <div id="chat-messages" class="messages-container"></div>
-        <div class="input-container">
-          <textarea
-            id="chat-input"
-            placeholder="Type your message..."
-          ></textarea>
-          <button id="send-button">Send</button>
-        </div>
-      </div>
-      <div class="navigation-controls">
-        <button id="prev-exchange">↑</button>
-        <div id="chat-scrollbar" class="custom-scrollbar"></div>
-        <button id="next-exchange">↓</button>
-      </div>
-    </div>
-    <script type="module" src="sidebar.js"></script>
+    <iframe
+      src="https://t3.chat"
+      allow="clipboard-write; popup-windows 'self' https://accounts.google.com; same-origin; scripts"
+      sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+    >
+    </iframe>
   </body>
 </html>

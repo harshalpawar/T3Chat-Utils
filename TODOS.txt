@@ -1,10 +1,13 @@
 [ ] Understand the code
-[ ] Get the sidebar working
-	[ ] Keyboard shortcut
-	[ ] Login 
-[ ] Load extension in Brave
+[x] Load extension in Brave
+[x] Get the sidebar working
+[x] Login
+[ ] Keyboard shortcut for sidebar
+[ ] Sidebar on extension click
+[ ] Sidebar settings page
 [ ] Page as context
-[ ] Transcript as context
+[ ] Youtube transcript as context
 [ ] Scrollbar
 [ ] Text expansion
+[ ] Testing on Zen, Chrome, Brave, Firefox
 [ ] npm audit
