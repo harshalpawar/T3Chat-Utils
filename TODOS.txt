@@ -5,7 +5,7 @@
 [x] Keyboard shortcut for sidebar
 [x] Sidebar on extension click
 [ ] Sidebar settings page
-[ ] Page as context
+[x] Page as context
 [ ] Youtube transcript as context
 [ ] Scrollbar
 [ ] Text expansion
