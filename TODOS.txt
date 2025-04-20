@@ -1,12 +1,15 @@
-[ ] Understand the code
+[ ] Understand JS and extension dev
+[ ] Understand the code fully
 [x] Load extension in Brave
 [x] Get the sidebar working
 [x] Login
 [x] Keyboard shortcut for sidebar
 [x] Sidebar on extension click
-[ ] Sidebar settings page
 [x] Page as context
+[ ] Clean page
+[ ] Style button and make it sidebar only
 [ ] Youtube transcript as context
+[ ] Sidebar settings page
 [ ] Scrollbar
 [ ] Text expansion
 [ ] Testing on Zen, Chrome, Brave, Firefox - both Mac & Windows

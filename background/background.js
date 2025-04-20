@@ -43,6 +43,7 @@ chrome.runtime.onConnect.addListener((port) => {
         port.postMessage({
           type: "HERE_IS_THE_HTML",
           html: null,
+          title: null,
           error: "No active tab found",
         });
         return;
@@ -50,10 +51,13 @@ chrome.runtime.onConnect.addListener((port) => {
 
       console.log(`Found active tab: ${mainTab.url}`);
 
-      // Execute script in the main tab to grab full HTML
+      // Execute script in the main tab to grab full HTML and title
       const results = await chrome.scripting.executeScript({
         target: { tabId: mainTab.id },
-        func: () => document.documentElement.outerHTML,
+        func: () => ({
+          html: document.documentElement.innerHTML,
+          title: document.title || "Untitled Page",
+        }),
       });
 
       if (!results || !results[0] || !results[0].result) {
@@ -61,18 +65,22 @@ chrome.runtime.onConnect.addListener((port) => {
         port.postMessage({
           type: "HERE_IS_THE_HTML",
           html: null,
+          title: null,
           error: "Failed to get HTML",
         });
         return;
       }
 
-      const html = results[0].result;
-      console.log(`Successfully retrieved HTML (${html.length} bytes)`);
+      const { html, title } = results[0].result;
+      console.log(
+        `Successfully retrieved HTML (${html.length} bytes) with title: ${title}`
+      );
 
-      // Send the HTML back through the port
+      // Send the HTML and title back through the port
       port.postMessage({
         type: "HERE_IS_THE_HTML",
         html: html,
+        title: title,
       });
 
       console.log("HTML sent back through port");
@@ -81,6 +89,7 @@ chrome.runtime.onConnect.addListener((port) => {
       port.postMessage({
         type: "HERE_IS_THE_HTML",
         html: null,
+        title: null,
         error: error.message,
       });
     }

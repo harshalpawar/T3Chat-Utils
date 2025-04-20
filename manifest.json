@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "T3Chat Context Injector",
+  "name": "T3Chat Sidebar",
   "version": "1.0.0",
-  "description": "Injects a button into T3Chat sidebar that grabs the main page HTML and drops it into the chat",
+  "description": "Load T3Chat in a sidebar and ask it questions about the current tab!",
   "permissions": ["scripting", "sidePanel", "activeTab", "webNavigation"],
   "host_permissions": ["*://t3.chat/*", "<all_urls>"],
   "background": {
@@ -13,12 +13,19 @@
     "default_path": "sidebar/sidebar.html"
   },
   "action": {
-    "default_title": "T3Chat Sidebar"
+    "default_title": "T3Chat Sidebar",
+    "default_icon": "icons/icon.png"
+  },
+  "icons": {
+    "16": "icons/icon.png",
+    "32": "icons/icon.png",
+    "48": "icons/icon.png",
+    "128": "icons/icon.png"
   },
   "content_scripts": [
     {
-      "matches": ["*://t3.chat/*"],
-      "js": ["iframe-injector.js"],
+      "matches": ["*://t3.chat/chat/*"],
+      "js": ["node_modules/turndown/dist/turndown.js", "iframe-injector.js"],
       "all_frames": true,
       "match_about_blank": true,
       "run_at": "document_idle"
