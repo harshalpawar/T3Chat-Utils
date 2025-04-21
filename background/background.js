@@ -1,9 +1,15 @@
-// Enable the side panel by default
+import logger from "../logger.js";
+import { IS_DEV_MODE } from "../config.js";
+logger.setDevMode(IS_DEV_MODE);
+
+// Toggle sidebar on icon click
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-// Handle extension icon click and keyboard shortcut
-chrome.action.onClicked.addListener((tab) => {
-  chrome.sidePanel.open({ windowId: tab.windowId });
+// Toggle sidebar on keyboard shortcut
+chrome.commands.onCommand.addListener((command, tab) => {
+  if (command === "toggle-sidebar") {
+    chrome.sidePanel.open({ windowId: tab.windowId });
+  }
 });
 
 // Store connections from content scripts
@@ -15,20 +21,18 @@ chrome.runtime.onConnect.addListener((port) => {
 
   const connectionId = port.sender.frameId || "main";
   connections[connectionId] = port;
-
-  console.log(`Connection established with frame ${connectionId}`);
+  logger.log(`Connection established with frame ${connectionId}`);
 
   // Clean up when port is disconnected
   port.onDisconnect.addListener(() => {
     delete connections[connectionId];
-    console.log(`Connection with frame ${connectionId} closed`);
+    logger.log(`Connection with frame ${connectionId} closed`);
   });
 
   // Listen for messages on this port
   port.onMessage.addListener(async (message) => {
     if (message.type !== "GET_ACTIVE_PAGE_HTML") return;
-
-    console.log("Received request for page HTML");
+    logger.log("Received request for page HTML");
 
     try {
       // Find active tab that is NOT the sidepanel
@@ -39,7 +43,7 @@ chrome.runtime.onConnect.addListener((port) => {
       const mainTab = tabs.find((t) => !t.url.includes("chrome-extension://"));
 
       if (!mainTab) {
-        console.warn("No active tab found");
+        logger.log("No active tab found");
         port.postMessage({
           type: "HERE_IS_THE_HTML",
           html: null,
@@ -49,7 +53,7 @@ chrome.runtime.onConnect.addListener((port) => {
         return;
       }
 
-      console.log(`Found active tab: ${mainTab.url}`);
+      logger.log(`Found active tab: ${mainTab.url}`);
 
       // Execute script in the main tab to grab full HTML and title
       const results = await chrome.scripting.executeScript({
@@ -61,7 +65,7 @@ chrome.runtime.onConnect.addListener((port) => {
       });
 
       if (!results || !results[0] || !results[0].result) {
-        console.error("Failed to get HTML from tab");
+        logger.error("Failed to get HTML from tab");
         port.postMessage({
           type: "HERE_IS_THE_HTML",
           html: null,
@@ -72,7 +76,7 @@ chrome.runtime.onConnect.addListener((port) => {
       }
 
       const { html, title } = results[0].result;
-      console.log(
+      logger.log(
         `Successfully retrieved HTML (${html.length} bytes) with title: ${title}`
       );
 
@@ -82,10 +86,9 @@ chrome.runtime.onConnect.addListener((port) => {
         html: html,
         title: title,
       });
-
-      console.log("HTML sent back through port");
+      logger.log("HTML sent back through port");
     } catch (error) {
-      console.error("Error in background script:", error);
+      logger.error("Error in background script:", error);
       port.postMessage({
         type: "HERE_IS_THE_HTML",
         html: null,

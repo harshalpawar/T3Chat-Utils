@@ -1,26 +1,21 @@
 // iframe-injector.js
+import logger from "./logger.js";
+import { IS_DEV_MODE } from "./config.js";
+logger.setDevMode(IS_DEV_MODE);
+
 (() => {
   // Only run inside iframe (extension sidebar); skip top-level tabs
   if (window.self === window.top) {
-    console.log(
-      "[T3Chat Context] Not in sidebar iframe, skipping content script."
+    logger.log(
+      "Not in sidebar iframe, skipping content script."
     );
     return;
   }
+
   let isSending = false;
   let lastMessageTime = 0;
   const THROTTLE_TIME = 2000; // 2 seconds between requests
   let port = null;
-
-  // Debug utility
-  function log(message, isError = false) {
-    const prefix = "[T3Chat Context]";
-    if (isError) {
-      console.error(`${prefix} ${message}`);
-    } else {
-      console.log(`${prefix} ${message}`);
-    }
-  }
 
   // Connect to the background script
   function connectToBackground() {
@@ -33,8 +28,8 @@
     }
 
     // Create a new connection
-    port = chrome.runtime.connect({ name: "t3chat-context" });
-    log("Connected to background script");
+    port = chrome.runtime.connect({ name: "sidekickchat-context" });
+    logger.log("Connected to background script");
 
     // Set up message handler
     port.onMessage.addListener((message) => {
@@ -45,29 +40,29 @@
       const btn = document.getElementById("grab-context-btn");
 
       if (!btn) {
-        log("Button not found when trying to reset state", true);
+        logger.log("Button not found when trying to reset state", "ERROR");
         return;
       }
 
       // Handle error case
       if (message.error || !message.html) {
-        log(
+        logger.log(
           `Error receiving HTML: ${message.error || "No HTML received"}`,
-          true
+          "ERROR"
         );
         btn.className = defaultClassName;
         btn.innerHTML = defaultContent;
         return;
       }
 
-      log(
+      logger.log(
         `Received HTML (${message.html.length} bytes), converting to Markdown...`
       );
 
       try {
         // Convert the HTML to Markdown using Turndown
         const markdown = convertHtmlToMarkdown(message.html);
-        log(
+        logger.log(
           `Converted to Markdown (${markdown.length} bytes), simulating drop...`
         );
 
@@ -78,7 +73,7 @@
         btn.className = defaultClassName;
         btn.innerHTML = defaultContent;
       } catch (error) {
-        log(`Error processing content: ${error.message}`, true);
+        logger.log(`Error processing content: ${error.message}`, "ERROR");
         btn.className = defaultClassName;
         btn.innerHTML = defaultContent;
       }
@@ -86,7 +81,7 @@
 
     // Handle disconnection
     port.onDisconnect.addListener(() => {
-      log("Connection to background lost, will reconnect when needed");
+      logger.log("Connection to background lost, will reconnect when needed");
       port = null;
     });
   }
@@ -105,7 +100,7 @@
 
   // Convert HTML to Markdown using Turndown
   function convertHtmlToMarkdown(html) {
-    log("Converting HTML to Markdown with Turndown...");
+    logger.log("Converting HTML to Markdown with Turndown...");
     try {
       // Create a temporary DOM document to parse the HTML
       const parser = new DOMParser();
@@ -136,14 +131,14 @@
         if (element && element.textContent.trim().length > 500) {
           // Found a substantial content element
           mainContent = element;
-          log(`Found main content using selector: ${selector}`);
+          logger.log(`Found main content using selector: ${selector}`);
           break;
         }
       }
 
       // If no suitable main content element found, try to use the <body> but remove scripts and navigation
       if (!mainContent) {
-        log(
+        logger.log(
           "No specific main content element found, cleaning the body instead"
         );
         mainContent = doc.body.cloneNode(true);
@@ -232,11 +227,11 @@
         .replace(/ga\('create'.*\);/g, "") // Remove GA calls
         .trim();
 
-      log("HTML successfully converted to Markdown");
+      logger.log("HTML successfully converted to Markdown");
       console.log(cleanMarkdown);
       return cleanMarkdown;
     } catch (error) {
-      log(`Error converting HTML to Markdown: ${error.message}`, true);
+      logger.log(`Error converting HTML to Markdown: ${error.message}`, true);
       throw error;
     }
   }
@@ -265,7 +260,7 @@
 
       const now = Date.now();
       if (isSending || now - lastMessageTime < THROTTLE_TIME) {
-        log("Too many requests, please wait...");
+        logger.log("Too many requests, please wait...");
         return;
       }
 
@@ -289,7 +284,7 @@
         <span class="px-1">Processing...</span>
       `;
 
-      log("Requesting page HTML from background script...");
+      logger.log("Requesting page HTML from background script...");
       port.postMessage({ type: "GET_ACTIVE_PAGE_HTML" });
 
       // Reset button after 5 seconds if no response
@@ -298,7 +293,7 @@
           isSending = false;
           btn.className = defaultClassName;
           btn.innerHTML = defaultContent;
-          log("Request timed out, reset button");
+          logger.log("Request timed out, reset button");
         }
       }, 5000);
     });
@@ -324,15 +319,15 @@
       actionsDiv.appendChild(originalButtonsRow);
       actionsDiv.appendChild(btn);
 
-      log("Button injected into message actions as second row");
+      logger.log("Button injected into message actions as second row");
     } else {
-      log("Could not find message actions div", true);
+      logger.log("Could not find message actions div", true);
     }
   }
 
   // Create a File with Markdown and dispatch drag/drop events
   function simulateDropWithMarkdown(markdown, title) {
-    log("Creating File object with Markdown...");
+    logger.log("Creating File object with Markdown...");
     const blob = new Blob([markdown], { type: "text/markdown" });
 
     // Clean the title and ensure it ends with .md
@@ -346,31 +341,31 @@
 
     const file = new File([blob], cleanTitle, { type: "text/markdown" });
 
-    log("Creating DataTransfer object...");
+    logger.log("Creating DataTransfer object...");
     const dt = new DataTransfer();
     dt.items.add(file);
 
-    log("Simulating drag and drop events...");
+    logger.log("Simulating drag and drop events...");
     // Common event properties for drag events
     const eventOptions = { dataTransfer: dt, bubbles: true, cancelable: true };
 
     // Dispatch each event in sequence
-    log("Dispatching dragenter event...");
+    logger.log("Dispatching dragenter event...");
     const dragEnterEvent = new DragEvent("dragenter", eventOptions);
     const dragEnterResult = document.body.dispatchEvent(dragEnterEvent);
-    log(`dragenter dispatch result: ${dragEnterResult}`);
+    logger.log(`dragenter dispatch result: ${dragEnterResult}`);
 
-    log("Dispatching dragover event...");
+    logger.log("Dispatching dragover event...");
     const dragOverEvent = new DragEvent("dragover", eventOptions);
     const dragOverResult = document.body.dispatchEvent(dragOverEvent);
-    log(`dragover dispatch result: ${dragOverResult}`);
+    logger.log(`dragover dispatch result: ${dragOverResult}`);
 
-    log("Dispatching drop event...");
+    logger.log("Dispatching drop event...");
     const dropEvent = new DragEvent("drop", eventOptions);
     const dropResult = document.body.dispatchEvent(dropEvent);
-    log(`drop dispatch result: ${dropResult}`);
+    logger.log(`drop dispatch result: ${dropResult}`);
 
-    log("Drop simulation completed!");
+    logger.log("Drop simulation completed!");
   }
 
   // Wait for the document to be ready and retry if button can't be injected
@@ -382,13 +377,13 @@
         // If we're in the iframe initial load, try to get the parent URL
         try {
           currentPath = new URL(document.referrer).pathname;
-          log(`Using referrer path instead: ${currentPath}`);
+          logger.log(`Using referrer path instead: ${currentPath}`);
         } catch (e) {
-          log("Could not get referrer path", true);
+          logger.log("Could not get referrer path", true);
           currentPath = "/";
         }
       }
-      log(`Checking path for injection: ${currentPath}`);
+      logger.log(`Checking path for injection: ${currentPath}`);
 
       // Match /chat, /chat/, or /chat/<anything>
       if (
@@ -396,18 +391,18 @@
         currentPath === "/chat/" ||
         currentPath.match(/^\/chat\/.+/)
       ) {
-        log("Chat path detected, injecting button...");
+        logger.log("Chat path detected, injecting button...");
         injectButton();
       } else {
-        log("Not a chat path, skipping button injection");
+        logger.log("Not a chat path, skipping button injection");
         const btn = document.getElementById("grab-context-btn");
         if (btn) {
           btn.remove();
-          log("Removed existing button");
+          logger.log("Removed existing button");
         }
       }
     } else {
-      log("Document body not found yet, will retry...");
+      logger.log("Document body not found yet, will retry...");
     }
   }
 
@@ -416,13 +411,15 @@
     document.readyState === "complete" ||
     document.readyState === "interactive"
   ) {
-    log(`Document already ${document.readyState}, trying to inject button`);
+    logger.log(
+      `Document already ${document.readyState}, trying to inject button`
+    );
     tryInject();
   }
 
   // Listen for DOMContentLoaded
   document.addEventListener("DOMContentLoaded", () => {
-    log("DOMContentLoaded fired, trying to inject button");
+    logger.log("DOMContentLoaded fired, trying to inject button");
     tryInject();
   });
 
@@ -434,13 +431,13 @@
       if (!currentPath || currentPath === "blank" || currentPath === "/blank") {
         try {
           currentPath = new URL(document.referrer).pathname;
-          log(`Using referrer path instead: ${currentPath}`);
+          logger.log(`Using referrer path instead: ${currentPath}`);
         } catch (e) {
-          log("Could not get referrer path", true);
+          logger.log("Could not get referrer path", true);
           currentPath = "/";
         }
       }
-      log(`Detected DOM change, current path: ${currentPath}`);
+      logger.log(`Detected DOM change, current path: ${currentPath}`);
 
       // Match /chat, /chat/, or /chat/<anything>
       if (
@@ -449,13 +446,13 @@
         currentPath.match(/^\/chat\/.+/)
       ) {
         if (!document.getElementById("grab-context-btn")) {
-          log("Chat route detected, injecting button");
+          logger.log("Chat route detected, injecting button");
           tryInject();
         }
       } else {
         const btn = document.getElementById("grab-context-btn");
         if (btn) {
-          log("Non-chat route detected, removing button");
+          logger.log("Non-chat route detected, removing button");
           btn.remove();
         }
       }
@@ -476,18 +473,18 @@
 
   history.pushState = function () {
     originalPushState.apply(this, arguments);
-    log("pushState detected, checking route");
+    logger.log("pushState detected, checking route");
     tryInject();
   };
 
   history.replaceState = function () {
     originalReplaceState.apply(this, arguments);
-    log("replaceState detected, checking route");
+    logger.log("replaceState detected, checking route");
     tryInject();
   };
 
   window.addEventListener("popstate", () => {
-    log("popstate detected, checking route");
+    logger.log("popstate detected, checking route");
     tryInject();
   });
 
@@ -500,10 +497,10 @@
   // Set up a short interval for initial injection
   window.injectionInterval = setInterval(() => {
     if (document.getElementById("grab-context-btn")) {
-      log("Button already injected, clearing interval");
+      logger.log("Button already injected, clearing interval");
       clearInterval(window.injectionInterval);
     } else {
-      log("Button not yet injected, retrying...");
+      logger.log("Button not yet injected, retrying...");
       tryInject();
     }
   }, 1000);
@@ -512,9 +509,9 @@
   setTimeout(() => {
     if (window.injectionInterval) {
       clearInterval(window.injectionInterval);
-      log("Injection attempts stopped after timeout");
+      logger.log("Injection attempts stopped after timeout");
     }
   }, 5000);
 
-  log("Content script initialized with enhanced route detection");
+  logger.log("Content script initialized with enhanced route detection");
 })();

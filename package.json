@@ -4,6 +4,7 @@
   "description": "Chrome extension that opens T3chat in a sidebar",
   "private": true,
   "dependencies": {
-    "turndown": "^7.1.2"
+    "turndown": "^7.1.2",
+    "youtube-transcript": "^1.2.1"
   }
 }

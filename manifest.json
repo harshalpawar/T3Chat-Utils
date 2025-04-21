@@ -1,19 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "T3Chat Sidebar",
+  "name": "SidekickChat",
   "version": "1.0.0",
-  "description": "Load T3Chat in a sidebar and ask it questions about the current tab!",
+  "description": "Seamlessly chat with T3Chat in a sidebar and get instant answers about any page you visit.",
   "permissions": ["scripting", "sidePanel", "activeTab", "webNavigation"],
   "host_permissions": ["*://t3.chat/*", "<all_urls>"],
   "background": {
-    "service_worker": "background/background.js",
-    "type": "module"
+    "service_worker": "background/background.js"
   },
   "side_panel": {
     "default_path": "sidebar/sidebar.html"
   },
   "action": {
-    "default_title": "T3Chat Sidebar",
+    "default_title": "SidekickChat",
     "default_icon": "icons/icon.png"
   },
   "icons": {
@@ -24,11 +23,18 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://t3.chat/chat/*"],
+      "matches": ["*://t3.chat/*"],
       "js": ["node_modules/turndown/dist/turndown.js", "iframe-injector.js"],
       "all_frames": true,
-      "match_about_blank": true,
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+I"
+      },
+      "description": "Toggle the sidebar"
+    }
+  }
 }

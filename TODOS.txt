@@ -15,3 +15,30 @@
 [ ] Testing on Zen, Chrome, Brave, Firefox - both Mac & Windows
 [ ] Add icons
 [ ] npm audit
+
+<a href="https://www.flaticon.com/free-icons/ui" title="ui icons">Ui icons created by Azland Studio - Flaticon</a>
+
+Current TODOS -
+[ ] clean up the code
+[ ] get yt transcripts working
+[ ] write docs
+[ ] firefox
+[ ] publish
+[ ] post on discord and X
+[ ] message this void guy on discord
+
+[ ] organise and modularise code
+[x] centralise logging
+[ ] fix the textbox overflow issue
+[ ] prevent same page reupload
+
+features planned - 
+page as context
+yt transcripts
+pdfs
+scroll buttons
+bookmark messages
+prompt library integration
+maybe RAG
+
+SidekickChat

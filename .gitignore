@@ -45,3 +45,7 @@ Thumbs.db
 # Compiled binary extensions
 *.crx
 *.pem
+
+# Other
+TODOS.txt
+instructions.md
