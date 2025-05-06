@@ -6,7 +6,8 @@
   "permissions": ["scripting", "sidePanel", "activeTab", "webNavigation"],
   "host_permissions": ["*://t3.chat/*", "<all_urls>"],
   "background": {
-    "service_worker": "background/background.js"
+    "service_worker": "background/background.js",
+    "type": "module"
   },
   "side_panel": {
     "default_path": "sidebar/sidebar.html"
@@ -24,7 +25,12 @@
   "content_scripts": [
     {
       "matches": ["*://t3.chat/*"],
-      "js": ["node_modules/turndown/dist/turndown.js", "iframe-injector.js"],
+      "js": [
+        "node_modules/turndown/dist/turndown.js",
+        "sidebar/content-processor.js",
+        "sidebar/drag-drop-simulator.js",
+        "sidebar/sidebar-injector.js"
+      ],
       "all_frames": true,
       "run_at": "document_idle"
     }

@@ -1,5 +1,5 @@
 {
-  "name": "t3chat-sidebar",
+  "name": "sidekickchat",
   "version": "1.0.0",
   "description": "Chrome extension that opens T3chat in a sidebar",
   "private": true,

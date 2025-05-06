@@ -27,7 +27,9 @@ Current TODOS -
 [ ] post on discord and X
 [ ] message this void guy on discord
 
+[ ] understand the code
 [ ] organise and modularise code
+[ ] use vite
 [x] centralise logging
 [ ] fix the textbox overflow issue
 [ ] prevent same page reupload
@@ -42,3 +44,6 @@ prompt library integration
 maybe RAG
 
 SidekickChat
+
+fix button state
+handle multi page reupload
