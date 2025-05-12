@@ -4,29 +4,21 @@ const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
 
-// Simple token counting function that approximates GPT tokenization
-// This is not as accurate as tiktoken but works well for most text
+// Token counter that approximates GPT tokenization
 function countTokens(text) {
   if (!text) return 0;
 
-  // Simple tokenization logic that approximates GPT tokenization
-  // Split on whitespace and handle punctuation
   const words = text.split(/\s+/).filter(Boolean);
   let tokenCount = 0;
 
   for (const word of words) {
-    // Count punctuation as separate tokens
     const punctuationCount = (
       word.match(/[.,!?;:(){}\[\]<>\/\\|@#$%^&*_=+-]/g) || []
     ).length;
-
-    // For English text, estimate words + punctuation
-    // This gives a rough approximation that works for most Western languages
     const wordTokens = Math.ceil(word.length / 4);
     tokenCount += wordTokens + punctuationCount;
   }
 
-  // Add extra tokens for newlines
   const newlines = (text.match(/\n/g) || []).length;
   tokenCount += newlines;
 
@@ -52,7 +44,7 @@ function isHeading(line) {
   return /^#{1,6}\s+/.test(line);
 }
 
-// Check if line is a good break point (empty line, heading, or horizontal rule)
+// Check if line is a good break point
 function isGoodBreakPoint(line) {
   return (
     line.trim() === "" ||
@@ -335,4 +327,219 @@ function main() {
   splitMarkdownFile(inputFilePath, maxTokens);
 }
 
-main();
+// ========== IN-MEMORY VERSION FOR BROWSER USE ==========
+
+// Split markdown content in memory
+function splitMarkdownContent(markdownContent, title, maxTokens = 32000) {
+  // Early return if content is small enough
+  if (countTokens(markdownContent) <= maxTokens) {
+    return [{ content: markdownContent, title: `${title}.md` }];
+  }
+
+  // Create base filename from title
+  const baseFilename = (title || "page")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .substring(0, 50);
+
+  // Process content line by line
+  const lines = markdownContent.split("\n");
+  const chunks = [];
+  let currentChunk = "";
+  let currentTokenCount = 0;
+
+  // Buffer for potential split points
+  let pendingLines = [];
+  let pendingTokens = 0;
+  let lastGoodBreakPointIndex = -1;
+
+  // Process each line
+  for (const line of lines) {
+    const lineTokens = countTokens(line);
+
+    pendingLines.push(line);
+    pendingTokens += lineTokens;
+
+    if (isGoodBreakPoint(line)) {
+      lastGoodBreakPointIndex = pendingLines.length - 1;
+    }
+
+    // Check if we need to split
+    if (currentTokenCount + pendingTokens > maxTokens) {
+      // If we've found a good break point, use it
+      if (lastGoodBreakPointIndex !== -1) {
+        const linesToAdd = pendingLines.slice(0, lastGoodBreakPointIndex + 1);
+        const tokensToAdd = linesToAdd.reduce(
+          (sum, l) => sum + countTokens(l),
+          0
+        );
+
+        currentChunk += linesToAdd.join("\n") + "\n";
+        currentTokenCount += tokensToAdd;
+
+        pendingLines = pendingLines.slice(lastGoodBreakPointIndex + 1);
+        pendingTokens = pendingTokens - tokensToAdd;
+        lastGoodBreakPointIndex = -1;
+      } else {
+        const linesToAdd = pendingLines.slice(0, -1);
+        if (linesToAdd.length > 0) {
+          const tokensToAdd = linesToAdd.reduce(
+            (sum, l) => sum + countTokens(l),
+            0
+          );
+          currentChunk += linesToAdd.join("\n") + "\n";
+          currentTokenCount += tokensToAdd;
+
+          pendingLines = pendingLines.slice(-1);
+          pendingTokens = countTokens(pendingLines[0]);
+        }
+      }
+
+      chunks.push(currentChunk);
+      currentChunk = "";
+      currentTokenCount = 0;
+
+      // Add continuation reference if starting new chunk with heading
+      if (pendingLines.length > 0) {
+        const firstHeadingLine = pendingLines.find((l) => isHeading(l));
+        if (firstHeadingLine) {
+          const tocLine = `*Continued from previous part*\n\n`;
+          currentChunk += tocLine;
+          currentTokenCount += countTokens(tocLine);
+        }
+      }
+    }
+  }
+
+  // Add remaining lines
+  if (pendingLines.length > 0) {
+    currentChunk += pendingLines.join("\n") + "\n";
+    currentTokenCount += pendingTokens;
+  }
+
+  // Add final chunk if not empty
+  if (currentTokenCount > 0) {
+    chunks.push(currentChunk);
+  }
+
+  // If no splitting occurred, return original content
+  if (chunks.length <= 1) {
+    return [{ content: markdownContent, title: `${title}.md` }];
+  }
+
+  // Create file objects for each chunk
+  const files = chunks.map((content, index) => ({
+    content,
+    title: `${baseFilename}-part${index + 1}.md`,
+    index: index + 1,
+  }));
+
+  // Add navigation
+  const enhancedFiles = addNavigationToFiles(files, baseFilename);
+
+  // Create and add index file
+  const indexFile = createIndexFile(baseFilename, files);
+  enhancedFiles.push(indexFile);
+
+  return enhancedFiles;
+}
+
+// Create index file
+function createIndexFile(baseFilename, files) {
+  let indexContent = `# ${baseFilename} - Index\n\nThis document has been split into ${files.length} parts to keep each file under the token limit.\n\n## Parts\n\n`;
+
+  for (const file of files) {
+    indexContent += `- [Part ${file.index}](${file.title})\n`;
+  }
+
+  return {
+    content: indexContent,
+    title: `${baseFilename}-index.md`,
+    index: 0,
+  };
+}
+
+// Add navigation to files
+function addNavigationToFiles(files, baseFilename) {
+  const totalFiles = files.length;
+
+  for (let i = 0; i < totalFiles; i++) {
+    const file = files[i];
+    const navHeader = createNavigationLinks(
+      file.index,
+      totalFiles,
+      baseFilename
+    );
+    const navFooter = createNavigationFooter(
+      file.index,
+      totalFiles,
+      baseFilename
+    );
+    file.content = navHeader + file.content + navFooter;
+  }
+
+  return files;
+}
+
+// Create navigation header
+function createNavigationLinks(currentIndex, totalFiles, baseFilename) {
+  let nav = `## Document Part ${currentIndex} of ${totalFiles}\n\n`;
+
+  if (currentIndex > 1) {
+    nav += `[⬅️ Previous](${baseFilename}-part${currentIndex - 1}.md) | `;
+  } else {
+    nav += `[⬅️ Previous] | `;
+  }
+
+  nav += "Parts: ";
+  for (let i = 1; i <= totalFiles; i++) {
+    if (i === currentIndex) {
+      nav += `[${i}] `;
+    } else {
+      nav += `[${i}](${baseFilename}-part${i}.md) `;
+    }
+  }
+
+  nav += ` | [📑 Index](${baseFilename}-index.md)`;
+
+  if (currentIndex < totalFiles) {
+    nav += ` | [Next ➡️](${baseFilename}-part${currentIndex + 1}.md)`;
+  } else {
+    nav += ` | [Next ➡️]`;
+  }
+
+  nav += "\n\n---\n\n";
+  return nav;
+}
+
+// Create navigation footer
+function createNavigationFooter(currentIndex, totalFiles, baseFilename) {
+  let footer = "\n\n---\n\n";
+
+  if (currentIndex > 1) {
+    footer += `[⬅️ Previous](${baseFilename}-part${currentIndex - 1}.md) | `;
+  } else {
+    footer += `[⬅️ Previous] | `;
+  }
+
+  footer += `[📑 Index](${baseFilename}-index.md)`;
+
+  if (currentIndex < totalFiles) {
+    footer += ` | [Next ➡️](${baseFilename}-part${currentIndex + 1}.md)`;
+  } else {
+    footer += ` | [Next ➡️]`;
+  }
+
+  return footer;
+}
+
+// Export for browser use
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { splitMarkdownContent, countTokens };
+}
+
+// Run main function if called directly from command line
+if (require.main === module) {
+  main();
+}

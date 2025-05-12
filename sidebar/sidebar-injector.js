@@ -1,7 +1,5 @@
 (() => {
-  if (window.self === window.top) {
-    return;
-  }
+  if (window.self === window.top) return;
 
   let isSending = false;
   let lastMessageTime = 0;
@@ -38,24 +36,28 @@
             message.error || "No HTML received"
           }`
         );
-        btn.className = defaultClassName;
-        btn.innerHTML = defaultContent;
+        resetButton(btn);
         return;
       }
 
       try {
         const markdown = convertHtmlToMarkdown(message.html);
+        const tooltip = document.querySelector("#grab-context-btn + div");
+        const markdownFiles = splitMarkdownContent(
+          markdown,
+          message.title || "page"
+        );
 
-        simulateDropWithMarkdown(markdown, message.title);
+        if (tooltip && markdownFiles.length > 1) {
+          tooltip.textContent = `Splitting into ${markdownFiles.length} files...`;
+        }
 
-        btn.className = defaultClassName;
-        btn.innerHTML = defaultContent;
+        processFilesSequentially(markdownFiles, tooltip, btn);
       } catch (error) {
         console.error(
           `[SidekickChat] Error processing content: ${error.message}`
         );
-        btn.className = defaultClassName;
-        btn.innerHTML = defaultContent;
+        resetButton(btn);
       }
     });
 
@@ -67,9 +69,51 @@
     });
   }
 
+  function resetButton(btn) {
+    btn.className = defaultClassName;
+    btn.innerHTML = defaultContent;
+  }
+
+  function processFilesSequentially(files, tooltip, btn) {
+    let currentIndex = 0;
+
+    function processNextFile() {
+      if (currentIndex >= files.length) {
+        resetButton(btn);
+
+        if (tooltip) {
+          if (files.length > 1) {
+            tooltip.textContent = `Uploaded ${files.length} files`;
+            setTimeout(() => {
+              if (tooltip) tooltip.textContent = "Grab Context";
+            }, 3000);
+          } else {
+            tooltip.textContent = "Grab Context";
+          }
+        }
+        return;
+      }
+
+      const file = files[currentIndex];
+
+      if (tooltip && files.length > 1) {
+        tooltip.textContent = `Uploading file ${currentIndex + 1}/${
+          files.length
+        }...`;
+      }
+
+      simulateDropWithMarkdown(file.content, file.title);
+      currentIndex++;
+
+      const delay = files.length > 1 ? 1500 : 500;
+      setTimeout(processNextFile, delay);
+    }
+
+    processNextFile();
+  }
+
   const defaultClassName =
     "p-2 flex h-auto items-center justify-center gap-2 rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-gray-800";
-
   const defaultContent = `
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
@@ -78,17 +122,13 @@
   `;
 
   function injectButton() {
-    if (document.getElementById("grab-context-btn")) {
-      return;
-    }
+    if (document.getElementById("grab-context-btn")) return;
 
     const actionsDiv = document.querySelector(
       'div[aria-label="Message actions"]'
     );
-
     if (!actionsDiv) return;
 
-    // Create tooltip container
     const tooltipContainer = document.createElement("div");
     tooltipContainer.className = "relative";
     tooltipContainer.style.display = "inline-block";
@@ -100,7 +140,6 @@
     btn.className = defaultClassName;
     btn.innerHTML = defaultContent;
 
-    // Create tooltip element
     const tooltip = document.createElement("div");
     tooltip.className =
       "text-xs rounded whitespace-nowrap opacity-0 pointer-events-none";
@@ -118,11 +157,9 @@
     tooltip.textContent = "Grab Context";
     tooltip.style.width = "max-content";
 
-    // Add hover event listeners for tooltip
     tooltipContainer.addEventListener("mouseenter", () => {
       tooltip.style.opacity = "1";
     });
-
     tooltipContainer.addEventListener("mouseleave", () => {
       tooltip.style.opacity = "0";
     });
@@ -132,13 +169,9 @@
       e.stopPropagation();
 
       const now = Date.now();
-      if (isSending || now - lastMessageTime < THROTTLE_TIME) {
-        return;
-      }
+      if (isSending || now - lastMessageTime < THROTTLE_TIME) return;
 
-      if (!port) {
-        connectToBackground();
-      }
+      if (!port) connectToBackground();
 
       isSending = true;
       lastMessageTime = now;
@@ -151,24 +184,20 @@
       `;
 
       tooltip.textContent = "Processing...";
-
       port.postMessage({ type: "GET_ACTIVE_PAGE_HTML" });
 
       setTimeout(() => {
         if (isSending) {
           isSending = false;
-          btn.className = defaultClassName;
-          btn.innerHTML = defaultContent;
+          resetButton(btn);
           tooltip.textContent = "Grab Context";
         }
       }, 5000);
     });
 
-    // Add elements to DOM
     tooltipContainer.appendChild(btn);
     tooltipContainer.appendChild(tooltip);
 
-    // Insert in the middle of the action buttons
     const children = Array.from(actionsDiv.children);
     const middleIndex = Math.floor(children.length / 2);
 
@@ -183,22 +212,14 @@
     const actionsDiv = document.querySelector(
       'div[aria-label="Message actions"]'
     );
-    if (actionsDiv) {
-      injectButton();
-    }
+    if (actionsDiv) injectButton();
   });
 
   if (document.body) {
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    observer.observe(document.body, { childList: true, subtree: true });
   } else {
     document.addEventListener("DOMContentLoaded", () => {
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-      });
+      observer.observe(document.body, { childList: true, subtree: true });
     });
   }
 })();

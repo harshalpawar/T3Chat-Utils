@@ -28,6 +28,7 @@
       "js": [
         "node_modules/turndown/dist/turndown.js",
         "sidebar/content-processor.js",
+        "sidebar/md-splitter.js",
         "sidebar/drag-drop-simulator.js",
         "sidebar/sidebar-injector.js"
       ],
